@@ -25,27 +25,6 @@ Parameters:
     MinValue: 1
     MaxValue: 5
     Default: 3
-  OtherSchemaRegistry:
-    Description: Are you only using a Schema Registry other than the AWS Glue Schema Registry
-    Type: String
-    Default: false
-    AllowedValues:
-      - true
-      - false
-  SecondaryDeserializer:
-    Description: Do you have records using a mix of the AWS Glue Schema Registry and another Schema Registry
-    Type: String
-    Default: false
-    AllowedValues:
-      - true
-      - false
-Conditions:
-  CreateVPCResources: !Or
-    - !Equals [ !Ref OtherSchemaRegistry, true ]
-    - !Equals [ !Ref SecondaryDeserializer, true ]
-  NoVPCResources: !And
-    - !Equals [ !Ref OtherSchemaRegistry, false ]
-    - !Equals [ !Ref SecondaryDeserializer, false ]
 
 Resources:
   ProcessMSKfunctionCSR:
@@ -77,8 +56,6 @@ Resources:
               !Sub "${BastionStack}-SchemaRegistryUrl"
           DELIVERY_STREAM_NAME: !Ref deliverystream
           RETRIES: !Ref LambdaRetries
-          CSR: !Ref OtherSchemaRegistry
-          SECONDARY_DESERIALIZER: !Ref SecondaryDeserializer
       # Function's execution role
       Role: !GetAtt LambdaRole.Arn
       Events:
@@ -108,8 +85,6 @@ Resources:
         Variables:
           DELIVERY_STREAM_NAME: !Ref deliverystream
           RETRIES: !Ref LambdaRetries
-          CSR: !Ref OtherSchemaRegistry
-          SECONDARY_DESERIALIZER: !Ref SecondaryDeserializer
       # Function's execution role
       Role: !GetAtt LambdaRole.Arn
       Events:
