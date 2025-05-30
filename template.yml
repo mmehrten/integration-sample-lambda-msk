@@ -27,53 +27,9 @@ Parameters:
     Default: 3
 
 Resources:
-  ProcessMSKfunctionCSR:
+  ProcessMSKfunction:
     Type: AWS::Serverless::Function
     DependsOn: MSKToS3LambdaPolicy
-    Condition: CreateVPCResources
-    Properties:
-      CodeUri: ./target/MSKToS3Lambda-1.0-SNAPSHOT.jar
-      Handler: com.amazonaws.kafka.samples.HandlerMSK
-      Runtime: java8.al2
-      Description: Java function
-      MemorySize: 512
-      Timeout: 300
-      VpcConfig:
-        SecurityGroupIds:
-          - Fn::ImportValue:
-              !Sub "${BastionStack}-KafkaClientEC2InstanceSecurityGroupId"
-        SubnetIds:
-          - Fn::ImportValue:
-              !Sub "${VPCStack}-PrivateSubnetMSKOne"
-          - Fn::ImportValue:
-              !Sub "${VPCStack}-PrivateSubnetMSKTwo"
-          - Fn::ImportValue:
-              !Sub "${VPCStack}-PrivateSubnetMSKThree"
-      Environment:
-        Variables:
-          SCHEMA_REGISTRY_URL:
-            Fn::ImportValue:
-              !Sub "${BastionStack}-SchemaRegistryUrl"
-          DELIVERY_STREAM_NAME: !Ref deliverystream
-          RETRIES: !Ref LambdaRetries
-      # Function's execution role
-      Role: !GetAtt LambdaRole.Arn
-      Events:
-        MSKEvent:
-          Type: MSK
-          Properties:
-            StartingPosition: TRIM_HORIZON
-            Stream:
-              Fn::ImportValue:
-                !Sub "${MSKStack}-MSKClusterArn"
-            BatchSize: !Ref BatchSize
-            Topics:
-              - ExampleTopic
-
-  ProcessMSKfunctionGSR:
-    Type: AWS::Serverless::Function
-    DependsOn: MSKToS3LambdaPolicy
-    Condition: NoVPCResources
     Properties:
       CodeUri: ./target/MSKToS3Lambda-1.0-SNAPSHOT.jar
       Handler: com.amazonaws.kafka.samples.HandlerMSK
@@ -96,6 +52,7 @@ Resources:
               Fn::ImportValue:
                 !Sub "${MSKStack}-MSKClusterArn"
             BatchSize: !Ref BatchSize
+            # TODO: Add ESM configs for deserializing from GSR
             Topics:
               - ExampleTopic
 
