@@ -44,7 +44,7 @@ Resources:
       Timeout: 300
       Environment:
         Variables:
-          DELIVERY_STREAM_NAME: !Ref deliverystream
+          DELIVERY_STREAM_NAME: !Ref DeliveryStream
           RETRIES: !Ref LambdaRetries
       # Function's execution role
       Role: !GetAtt LambdaRole.Arn
@@ -99,7 +99,7 @@ Resources:
           - Effect: Allow
             Action:
               - firehose:PutRecordBatch
-            Resource: !GetAtt deliverystream.Arn
+            Resource: !GetAtt DeliveryStream.Arn
           - Effect: Allow
             Action:
               - kafka:DescribeCluster
@@ -130,18 +130,20 @@ Resources:
       Path: "/"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
-  s3bucket:
+
+  S3Bucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
 
-  deliverystream:
+  DeliveryStream:
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
       DeliveryStreamType: DirectPut
       ExtendedS3DestinationConfiguration:
-        RoleARN: !GetAtt deliveryRole.Arn
-        BucketARN: !Sub 'arn:aws:s3:::${s3bucket}'
+        RoleARN: !GetAtt DeliveryRole.Arn
+        BucketARN: !Sub 'arn:aws:s3:::${S3Bucket}'
         Prefix: MSKToS3/
+        ErrorOutputPrefix: errors/
         BufferingHints:
           SizeInMBs: 5
           IntervalInSeconds: 120
@@ -150,18 +152,24 @@ Resources:
           NoEncryptionConfig: NoEncryption
         CloudWatchLoggingOptions:
           Enabled: true
-          LogGroupName: !Ref deliveryLogGroup
+          LogGroupName: !Ref DeliveryLogGroup
           LogStreamName: S3Delivery
         S3BackupMode: Disabled
-  deliveryLogGroup:
+
+  DeliveryLogGroup:
     Type : AWS::Logs::LogGroup
     Properties:
       LogGroupClass: STANDARD
-      LogGroupName: /aws/kinesisfirehose/KDF-MSKToS3/
+      LogGroupName: /aws/kinesisfirehose/KDF-MSKToS3
       RetentionInDays: 14
 
+  DeliveryLogStream:
+    Type : AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref DeliveryLogGroup
+      LogStreamName: S3Delivery
 
-  deliveryRole:
+  DeliveryRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -190,9 +198,12 @@ Resources:
                   - 's3:ListBucketMultipartUploads'
                   - 's3:PutObject'
                 Resource:
-                  - !Sub 'arn:aws:s3:::${s3bucket}'
-                  - !Sub 'arn:aws:s3:::${s3bucket}/*'
+                  - !Sub 'arn:aws:s3:::${S3Bucket}'
+                  - !Sub 'arn:aws:s3:::${S3Bucket}/*'
               - Effect: Allow
-                Action: 'logs:PutLogEvents'
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
                 Resource:
-                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${deliveryLogGroup}:log-stream:*'
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${DeliveryLogGroup}:*'

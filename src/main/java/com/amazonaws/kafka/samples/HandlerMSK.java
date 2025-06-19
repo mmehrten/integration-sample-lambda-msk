@@ -54,7 +54,7 @@ public class HandlerMSK implements RequestHandler<ConsumerRecords<String, String
             
             // Add processing timestamp
             ObjectNode mutableRoot = (ObjectNode) rootNode;
-            mutableRoot.put("processedTimestamp", System.currentTimeMillis());
+            mutableRoot.put("processed_timestamp", System.currentTimeMillis());
             
             // Additional transformations can be added here:
             // - GeoIP lookup: Extract IP field and add location data
